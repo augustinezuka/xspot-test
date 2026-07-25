@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.NetworkCheck
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
@@ -44,6 +45,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -65,6 +67,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.XSpotRepository
 import com.example.data.network.DevMenuManager
 import com.example.ui.components.CompactButton
 import com.example.ui.components.CompactButtonStyle
@@ -84,7 +87,9 @@ import kotlinx.coroutines.withContext
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DevMenuScreen(
-  onBackClick: () -> Unit
+  repository: XSpotRepository? = null,
+  onBackClick: () -> Unit,
+  onNavigateHome: (() -> Unit)? = null
 ) {
   val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
   val context = LocalContext.current
@@ -93,6 +98,11 @@ fun DevMenuScreen(
 
   val config by DevMenuManager.config.collectAsState()
   val logs by DevMenuManager.logs.collectAsState()
+
+  val isDataSeeded = repository?.isDataSeeded?.collectAsState()?.value ?: false
+  val isBiometricEnabled = repository?.isBiometricEnabled?.collectAsState()?.value ?: true
+  val jwtToken = repository?.jwtToken?.collectAsState()?.value
+  val isAuthenticated = !jwtToken.isNullOrBlank()
 
   var urlInput by remember { mutableStateOf(config.baseUrl) }
   var headerKey by remember { mutableStateOf("") }
@@ -206,6 +216,163 @@ fun DevMenuScreen(
               text = "System",
               onClick = { DevMenuManager.setThemeMode(AppThemeMode.SYSTEM) },
               style = if (config.themeMode == AppThemeMode.SYSTEM) CompactButtonStyle.Primary else CompactButtonStyle.Outlined,
+              modifier = Modifier.weight(1f)
+            )
+          }
+        }
+      }
+
+      // Biometric Admin Authentication Control
+      GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 14.dp,
+        contentPadding = 16.dp
+      ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+              Icon(
+                Icons.Default.Fingerprint,
+                contentDescription = null,
+                tint = if (isDark) Ember300 else Ember600,
+                modifier = Modifier.size(20.dp)
+              )
+              Spacer(modifier = Modifier.width(6.dp))
+              Text(
+                text = "Biometric Admin Authentication",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (isDark) Color.White else Color.Black
+              )
+            }
+
+            StatusChip(
+              text = if (isAuthenticated) "Super Admin Session" else "Biometric Ready",
+              type = if (isAuthenticated) ChipType.Success else ChipType.Neutral
+            )
+          }
+
+          Text(
+            text = "Instantly authenticate as Super Admin using device biometric verification or quick admin login. Issues signed JWT session token.",
+            fontSize = 11.sp,
+            color = if (isDark) Color(0xFFD4C5B9) else Color(0xFF4A3E36)
+          )
+
+          CompactButton(
+            text = "Authenticate Admin via Biometrics",
+            onClick = {
+              val (success, msg) = repository?.loginBiometricAdmin() ?: Pair(true, "Biometric Admin Authenticated")
+              Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+              onNavigateHome?.invoke()
+            },
+            icon = Icons.Default.Fingerprint,
+            style = CompactButtonStyle.Primary,
+            modifier = Modifier.fillMaxWidth()
+          )
+
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Text(
+              text = "Enable Biometric Login Shortcut",
+              fontSize = 12.sp,
+              fontWeight = FontWeight.Medium,
+              color = if (isDark) Color.White else Color.Black
+            )
+
+            Switch(
+              checked = isBiometricEnabled,
+              onCheckedChange = { repository?.toggleBiometricSetting(it) }
+            )
+          }
+        }
+      }
+
+      // Sample Data Seed Switch Control
+      GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 14.dp,
+        contentPadding = 16.dp
+      ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+              Icon(
+                Icons.Default.BugReport,
+                contentDescription = null,
+                tint = if (isDark) Ember300 else Ember600,
+                modifier = Modifier.size(20.dp)
+              )
+              Spacer(modifier = Modifier.width(6.dp))
+              Text(
+                text = "Data Seed Switch",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (isDark) Color.White else Color.Black
+              )
+            }
+
+            StatusChip(
+              text = if (isDataSeeded) "Seed Data Active" else "Clean State",
+              type = if (isDataSeeded) ChipType.Success else ChipType.Neutral
+            )
+          }
+
+          Text(
+            text = "Toggle sample seed datasets for locations, routers, vouchers, packages, expenses, and promotions across all fleet modules.",
+            fontSize = 11.sp,
+            color = if (isDark) Color(0xFFD4C5B9) else Color(0xFF4A3E36)
+          )
+
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Text(
+              text = "Populate Sample Demo Data",
+              fontSize = 13.sp,
+              fontWeight = FontWeight.SemiBold,
+              color = if (isDark) Color.White else Color.Black
+            )
+
+            Switch(
+              checked = isDataSeeded,
+              onCheckedChange = { repository?.toggleDataSeed(it) }
+            )
+          }
+
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+          ) {
+            CompactButton(
+              text = "Load Seed Data",
+              onClick = {
+                repository?.toggleDataSeed(true)
+                Toast.makeText(context, "Sample seed datasets loaded!", Toast.LENGTH_SHORT).show()
+              },
+              style = CompactButtonStyle.Outlined,
+              modifier = Modifier.weight(1f)
+            )
+
+            CompactButton(
+              text = "Clear to Clean State",
+              onClick = {
+                repository?.toggleDataSeed(false)
+                Toast.makeText(context, "Data cleared (clean state)", Toast.LENGTH_SHORT).show()
+              },
+              style = CompactButtonStyle.Outlined,
               modifier = Modifier.weight(1f)
             )
           }

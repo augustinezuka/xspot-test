@@ -5,10 +5,22 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.Home
@@ -17,10 +29,6 @@ import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Router
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,14 +39,23 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
-
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.theme.Ember100
+import com.example.ui.theme.Ember300
+import com.example.ui.theme.Ember500
+import com.example.ui.theme.Ember600
+import com.example.ui.theme.Slate400
+import com.example.ui.theme.Slate500
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -158,44 +175,19 @@ fun XSpotFieldApp(repository: XSpotRepository) {
   Scaffold(
     bottomBar = {
       if (currentRoute != "login" && currentRoute != "dev_menu" && isAuthenticated) {
-        NavigationBar(
-          containerColor = if (isDark) DarkGlassSurface.copy(alpha = 0.9f) else LightGlassSurface.copy(alpha = 0.95f),
-          tonalElevation = 8.dp
-        ) {
-          bottomNavItems.forEach { screen ->
-            val isSelected = currentRoute == screen.route
-            NavigationBarItem(
-              selected = isSelected,
-              onClick = {
-                navController.navigate(screen.route) {
-                  popUpTo(navController.graph.findStartDestination().id) {
-                    saveState = true
-                  }
-                  launchSingleTop = true
-                  restoreState = true
-                }
-              },
-              icon = {
-                Icon(
-                  imageVector = screen.icon,
-                  contentDescription = screen.title,
-                  tint = if (isSelected) (if (isDark) Ember300 else Ember600) else Umber400
-                )
-              },
-              label = {
-                Text(
-                  text = screen.title,
-                  fontSize = 11.sp,
-                  fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                  color = if (isSelected) (if (isDark) Ember300 else Ember600) else Umber400
-                )
-              },
-              colors = NavigationBarItemDefaults.colors(
-                indicatorColor = Color.Transparent
-              )
-            )
+        LiquidGlassNavBar(
+          items = bottomNavItems,
+          currentRoute = currentRoute,
+          onNavigate = { screen ->
+            navController.navigate(screen.route) {
+              popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+              }
+              launchSingleTop = true
+              restoreState = true
+            }
           }
-        }
+        )
       }
     }
   ) { innerPadding ->
@@ -227,7 +219,13 @@ fun XSpotFieldApp(repository: XSpotRepository) {
 
         composable("dev_menu") {
           DevMenuScreen(
-            onBackClick = { navController.popBackStack() }
+            repository = repository,
+            onBackClick = { navController.popBackStack() },
+            onNavigateHome = {
+              navController.navigate(Screen.Home.route) {
+                popUpTo("login") { inclusive = true }
+              }
+            }
           )
         }
 
@@ -381,6 +379,132 @@ fun XSpotFieldApp(repository: XSpotRepository) {
             repository.addExpense(locationId, category, amount, "2026-07-24", desc)
           }
         )
+      }
+    }
+  }
+}
+
+@Composable
+fun LiquidGlassNavBar(
+  items: List<Screen>,
+  currentRoute: String?,
+  onNavigate: (Screen) -> Unit,
+  modifier: Modifier = Modifier
+) {
+  val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+
+  val surfaceBrush = if (isDark) {
+    Brush.verticalGradient(
+      colors = listOf(
+        Color(0xFF1E293B).copy(alpha = 0.88f),
+        Color(0xFF0F172A).copy(alpha = 0.95f)
+      )
+    )
+  } else {
+    Brush.verticalGradient(
+      colors = listOf(
+        Color.White.copy(alpha = 0.95f),
+        Color(0xFFF1F5F9).copy(alpha = 0.90f)
+      )
+    )
+  }
+
+  val borderBrush = if (isDark) {
+    Brush.verticalGradient(
+      colors = listOf(
+        Color.White.copy(alpha = 0.40f),
+        Color.White.copy(alpha = 0.10f)
+      )
+    )
+  } else {
+    Brush.verticalGradient(
+      colors = listOf(
+        Color.White,
+        Color(0xFFCBD5E1).copy(alpha = 0.75f)
+      )
+    )
+  }
+
+  val shape = RoundedCornerShape(24.dp)
+
+  Box(
+    modifier = modifier
+      .fillMaxWidth()
+      .padding(horizontal = 14.dp, vertical = 6.dp)
+      .navigationBarsPadding()
+      .shadow(
+        elevation = if (isDark) 12.dp else 10.dp,
+        shape = shape,
+        spotColor = if (isDark) Color(0x60000000) else Color(0x250F172A),
+        ambientColor = if (isDark) Color(0x40000000) else Color(0x180F172A)
+      )
+      .clip(shape)
+      .background(surfaceBrush)
+      .border(1.dp, borderBrush, shape)
+      .padding(vertical = 6.dp, horizontal = 4.dp)
+  ) {
+    Row(
+      modifier = Modifier.fillMaxWidth(),
+      horizontalArrangement = Arrangement.SpaceEvenly,
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      items.forEach { screen ->
+        val isSelected = currentRoute == screen.route
+        val activePillBg = if (isDark) {
+          Ember500.copy(alpha = 0.22f)
+        } else {
+          Ember100.copy(alpha = 0.90f)
+        }
+        val activePillBorder = if (isDark) Ember300.copy(alpha = 0.35f) else Ember500.copy(alpha = 0.30f)
+
+        val iconTint = if (isSelected) {
+          if (isDark) Ember300 else Ember600
+        } else {
+          if (isDark) Slate400 else Slate500
+        }
+
+        val textTint = if (isSelected) {
+          if (isDark) Ember300 else Ember600
+        } else {
+          if (isDark) Slate400 else Slate500
+        }
+
+        val pillShape = RoundedCornerShape(16.dp)
+
+        Box(
+          modifier = Modifier
+            .clip(pillShape)
+            .then(
+              if (isSelected) {
+                Modifier
+                  .background(activePillBg, pillShape)
+                  .border(1.dp, activePillBorder, pillShape)
+              } else Modifier
+            )
+            .clickable { onNavigate(screen) }
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+          contentAlignment = Alignment.Center
+        ) {
+          Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+          ) {
+            Icon(
+              imageVector = screen.icon,
+              contentDescription = screen.title,
+              tint = iconTint,
+              modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+              text = screen.title,
+              fontSize = 10.sp,
+              fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+              color = textTint,
+              maxLines = 1
+            )
+          }
+        }
       }
     }
   }

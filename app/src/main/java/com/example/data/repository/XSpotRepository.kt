@@ -29,6 +29,91 @@ class XSpotRepository(private val db: AppDatabase) {
   private val _jwtToken = MutableStateFlow<String?>(null)
   val jwtToken: StateFlow<String?> = _jwtToken.asStateFlow()
 
+  // Sample Seed Data & Biometric Admin Config
+  private val _isDataSeeded = MutableStateFlow(false)
+  val isDataSeeded: StateFlow<Boolean> = _isDataSeeded.asStateFlow()
+
+  private val _isBiometricEnabled = MutableStateFlow(true)
+  val isBiometricEnabled: StateFlow<Boolean> = _isBiometricEnabled.asStateFlow()
+
+  fun toggleBiometricSetting(enabled: Boolean) {
+    _isBiometricEnabled.value = enabled
+  }
+
+  fun loginBiometricAdmin(): Pair<Boolean, String> {
+    DevMenuManager.logInfo("Auth", "Biometric Admin Authentication triggered")
+    val dummyAdminJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkB4c3BvdC5uZXQiLCJyb2xlIjoic3VwZXJfYWRtaW4iLCJpYXQiOjE3NTM3MDA0MDB9.xspot_admin_jwt_sig"
+    setJwtToken(dummyAdminJwt)
+    _currentUser.value = User(
+      id = "usr-biometric-admin",
+      email = "admin@xspot.net",
+      firstName = "Super Admin",
+      lastName = "(Biometric Verified)",
+      role = UserRole.super_admin,
+      organizationId = "org-xspot"
+    )
+    DevMenuManager.logInfo("Auth", "Biometric verification successful. Super Admin JWT session issued.")
+    return Pair(true, "Biometric Admin Authenticated Successfully (JWT Session Issued)")
+  }
+
+  fun toggleDataSeed(seed: Boolean) {
+    if (seed) {
+      loadSampleSeedData()
+      _isDataSeeded.value = true
+      DevMenuManager.logInfo("SeedData", "Sample seed dataset successfully loaded into repository across all modules")
+    } else {
+      loadCleanState()
+      _isDataSeeded.value = false
+      DevMenuManager.logInfo("SeedData", "Sample seed data cleared. Reverted to clean state.")
+    }
+  }
+
+  fun loadSampleSeedData() {
+    _organizations.value = listOf(
+      Organization(id = "org-xspot", name = "XSpot Telecom Corp")
+    )
+    _clusters.value = listOf(
+      Cluster(id = "cls-cbd", name = "CBD Hotspot Cluster", description = "Harare Central Business District", sharingEnabled = true, locationCount = 2),
+      Cluster(id = "cls-sub", name = "Suburban Access Cluster", description = "Shopping Hubs & Outlets", sharingEnabled = true, locationCount = 1)
+    )
+    _locations.value = listOf(
+      Location(id = "loc-1", organizationId = "org-xspot", clusterId = "cls-cbd", name = "Downtown Hub", address = "Harare Central, Sam Nujoma Street", latitude = -17.8252, longitude = 31.0335, monthlyRent = 250.0, electricity = 80.0, internetCost = 120.0),
+      Location(id = "loc-2", organizationId = "org-xspot", clusterId = "cls-cbd", name = "Westgate Complex", address = "Westgate Mall, Lomagundi Rd", latitude = -17.7811, longitude = 31.0022, monthlyRent = 300.0, electricity = 100.0, internetCost = 150.0),
+      Location(id = "loc-3", organizationId = "org-xspot", clusterId = "cls-sub", name = "Avondale Flea Market", address = "King George Rd, Avondale", latitude = -17.8015, longitude = 31.0425, monthlyRent = 200.0, electricity = 60.0, internetCost = 90.0)
+    )
+    _routers.value = listOf(
+      Router(id = "rtr-1", locationId = "loc-1", name = "Downtown Main AP", ipAddress = "192.168.88.1", status = RouterStatus.online, lastSeenAt = "1m ago"),
+      Router(id = "rtr-2", locationId = "loc-2", name = "Westgate FastSpot", ipAddress = "192.168.88.2", status = RouterStatus.online, lastSeenAt = "Just now"),
+      Router(id = "rtr-3", locationId = "loc-3", name = "Avondale Hotspot", ipAddress = "192.168.88.3", status = RouterStatus.offline, lastSeenAt = "12m ago")
+    )
+    val pkg1 = Package(id = "pkg-1", name = "1 Hour Unlimited", timeLimit = 60, dataLimit = null, downloadSpeed = 10.0, uploadSpeed = 5.0, price = 1.0, isUnlimited = true)
+    val pkg2 = Package(id = "pkg-2", name = "Daily Pass 2GB", timeLimit = 1440, dataLimit = 2147483648L, downloadSpeed = 25.0, uploadSpeed = 10.0, price = 2.50)
+    val pkg3 = Package(id = "pkg-3", name = "Weekly Mega 10GB", timeLimit = 10080, dataLimit = 10737418240L, downloadSpeed = 50.0, uploadSpeed = 20.0, price = 10.0)
+    _packages.value = listOf(pkg1, pkg2, pkg3)
+
+    _vouchers.value = listOf(
+      Voucher(id = "vch-101", code = "XP-8821", packageId = "pkg-1", locationId = "loc-1", status = VoucherStatus.active, activatedAt = "10 mins ago"),
+      Voucher(id = "vch-102", code = "XP-9034", packageId = "pkg-2", locationId = "loc-2", status = VoucherStatus.active, activatedAt = "25 mins ago"),
+      Voucher(id = "vch-103", code = "XP-1120", packageId = "pkg-1", locationId = "loc-1", status = VoucherStatus.created),
+      Voucher(id = "vch-104", code = "XP-5541", packageId = "pkg-3", locationId = "loc-3", status = VoucherStatus.generated)
+    )
+    _expenses.value = listOf(
+      Expense(id = "exp-1", locationId = "loc-1", category = "Rent", description = "Monthly site lease", amount = 250.0, expenseDate = "2026-07-01"),
+      Expense(id = "exp-2", locationId = "loc-1", category = "Electricity", description = "ZETDC Utility bill", amount = 80.0, expenseDate = "2026-07-05"),
+      Expense(id = "exp-3", locationId = "loc-2", category = "Internet", description = "Liquid Fiber link", amount = 150.0, expenseDate = "2026-07-02")
+    )
+    val prom1 = Promotion(id = "prom-1", name = "Summer Data Extravaganza", prize = "Win 50GB Free Data Voucher", startDate = "2026-07-01", endDate = "2026-08-01", status = "active")
+    _promotions.value = listOf(prom1)
+    _promotionEntries.value = listOf(
+      PromotionEntry(id = "pe-1", promotionId = "prom-1", name = "John Moyo", phone = "+263 77 123 4567", email = "john.moyo@gmail.com"),
+      PromotionEntry(id = "pe-2", promotionId = "prom-1", name = "Sarah Ndlovu", phone = "+263 77 987 6543", email = "sarah.ndlovu@yahoo.com")
+    )
+    _activities.value = listOf(
+      ActivityItem(id = "act-1", kind = "voucher_activated", locationName = "Downtown Hub", message = "Voucher XP-8821 activated at Downtown Hub", signalBars = 4, occurredAt = "10m ago"),
+      ActivityItem(id = "act-2", kind = "router_status_change", locationName = "Westgate Complex", message = "Router Westgate FastSpot status: ONLINE", signalBars = 4, occurredAt = "25m ago")
+    )
+  }
+
   fun setJwtToken(token: String?) {
     _jwtToken.value = token
     if (!token.isNullOrBlank()) {

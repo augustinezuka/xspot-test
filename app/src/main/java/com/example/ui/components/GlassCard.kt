@@ -37,15 +37,15 @@ fun GlassCard(
   val surfaceBrush = if (isDark) {
     Brush.verticalGradient(
       colors = listOf(
-        Color(0xFF1E293B).copy(alpha = 0.70f),
-        Color(0xFF0F172A).copy(alpha = 0.85f)
+        Color(0xFF1E293B).copy(alpha = 0.75f),
+        Color(0xFF0F172A).copy(alpha = 0.88f)
       )
     )
   } else {
     Brush.verticalGradient(
       colors = listOf(
-        Color.White.copy(alpha = 0.78f),
-        Color.White.copy(alpha = 0.48f)
+        Color.White.copy(alpha = 0.94f),
+        Color(0xFFF8FAFC).copy(alpha = 0.88f)
       )
     )
   }
@@ -53,15 +53,15 @@ fun GlassCard(
   val borderBrush = if (isDark) {
     Brush.verticalGradient(
       colors = listOf(
-        Color.White.copy(alpha = 0.35f),
+        Color.White.copy(alpha = 0.38f),
         Color.White.copy(alpha = 0.08f)
       )
     )
   } else {
     Brush.verticalGradient(
       colors = listOf(
-        Color.White.copy(alpha = 0.95f),
-        Color(0xFF94A3B8).copy(alpha = 0.40f)
+        Color.White,
+        Color(0xFFCBD5E1).copy(alpha = 0.75f)
       )
     )
   }
@@ -70,7 +70,8 @@ fun GlassCard(
     .shadow(
       elevation = if (isDark) 8.dp else 6.dp,
       shape = shape,
-      spotColor = if (isDark) Color(0x50000000) else Color(0x1E0F172A)
+      spotColor = if (isDark) Color(0x50000000) else Color(0x200F172A),
+      ambientColor = if (isDark) Color(0x30000000) else Color(0x150F172A)
     )
     .clip(shape)
     .background(surfaceBrush)
